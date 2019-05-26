@@ -1,3 +1,4 @@
 /server/keys/postgres.js
 server/exampleData/csv/*
 server/exampleData/json/*
+/server/dist
