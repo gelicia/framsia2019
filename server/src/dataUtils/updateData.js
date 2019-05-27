@@ -6,8 +6,8 @@ const stationInfo=[];
 let badStationData = false;
 
 /*
-DELETE from stations;
 DELETE from station_activity;
+DELETE from stations;
 ALTER SEQUENCE stations_id_seq RESTART WITH 1;
 commit;
 */
@@ -109,7 +109,18 @@ csvStream.pipe(csv())
                 }); 
             })
             .on('end', () => {
-                console.log("Activity imported.");
+                console.log("Activity imports queued. Updating counts.");
+                pool.query('UPDATE stations SET activitycount = sa.cnt ' +
+                'FROM (SELECT stationid, count(*) as cnt ' +
+                'FROM station_activity ' +
+                'GROUP BY stationid) sa ' +
+                'WHERE sa.stationid = stations.id', [], (error, response) => {
+                    if (error) {
+                        console.log(JSON.stringify(error));
+                        throw error
+                    }
+                    console.log('Counts updated.')
+                });
             });
         });
     } else {
