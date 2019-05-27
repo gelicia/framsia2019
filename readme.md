@@ -31,10 +31,10 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO framsiadbuser;
 
 SELECT stationLimit.id, distance, COUNT(*)
 FROM (SELECT stations.id, stations.dataid, stations.name, stations.description, stations.long, stations.lat,
-ST_Distance(stations.geom, 'SRID=4326;POINT(10.7673282 59.9031036)'::geometry) as distance
+ST_Distance(stations.geom, 'SRID=4326;POINT(10.7673282 59.9031036)'::geometry, true) as distance
 FROM
   stations
-ORDER BY ST_Distance(stations.geom, 'SRID=4326;POINT(10.7673282 59.9031036)'::geometry) ASC
+ORDER BY ST_Distance(stations.geom, 'SRID=4326;POINT(10.7673282 59.9031036)'::geometry, true) ASC
 LIMIT 5 ) as stationLimit,
 station_activity sa
 WHERE sa.stationId = stationLimit.id
