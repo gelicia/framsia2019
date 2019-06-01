@@ -1,6 +1,3 @@
-/**
- * Demonstrates a simple HTTP endpoint using API Gateway.                  
- */
 exports.handler = (event, context, callback) => {
     console.log('Received event:', JSON.stringify(event, null, 2));
 
@@ -17,105 +14,64 @@ exports.handler = (event, context, callback) => {
     });
 
     const getScoreLongLat = (longCoord, latCoord, maxDist) => {
-        const longLatString = longCoord + ' ' + latCoord;
-        const maxDistance = maxDist || '800';
-        const postgresConfig = require('./keys/postgres');
-        const Pool = require('pg').Pool
-        const pool = new Pool({
-          user: postgresConfig.user,
-          host: postgresConfig.host,
-          database: postgresConfig.database,
-          password: postgresConfig.password,
-          port: postgresConfig.port
-        });
-        // I couldnt figure out how to get parameterization to work here, it wants strings not numbers? 
-        pool.query('SELECT stationdata.dataid, stationdata.name, stationdata.activitycount, stationdata.distance, ' +
-        'stationAgg.sumCnt, stationAgg.minCnt, stationAgg.maxCnt ' +
-        'FROM ' +
-        '(SELECT stations.dataid, stations.name, stations.activitycount, ' +
-        'ST_Distance(stations.geom, \'SRID=4326;POINT(' + longLatString + ')\'::geometry, true) as distance ' +
-        'FROM stations ' +
-        'WHERE ST_Distance(stations.geom, \'SRID=4326;POINT(' + longLatString + ')\'::geometry, true) < '+ maxDistance + ' ' +
-        'ORDER BY ST_Distance(stations.geom, \'SRID=4326;POINT(' + longLatString + ')\'::geometry, true) ASC ) stationData ' +
-        'CROSS JOIN ' +
-        '(SELECT SUM(activityCount) sumCnt, MIN(activityCount) minCnt, MAX(activityCount) maxCnt FROM stations) stationAgg',
-            [], (error, response) => {
-                if (error) {
-                    return {
-                        statusCode: 500,
-                        body: JSON.stringify(error)
-                    };
-                } else {
+        if (longCoord !== undefined && !isNaN(longCoord) && latCoord !== undefined && !isNaN(latCoord)) {
+            const longLatString = longCoord + ' ' + latCoord;
+            const maxDistance = maxDist || '800';
+
+            const postgresConfig = require('./keys/postgres');
+            const Pool = require('pg').Pool;
+            const pool = new Pool({
+              user: postgresConfig.user,
+              host: postgresConfig.host,
+              database: postgresConfig.database,
+              password: postgresConfig.password,
+              port: postgresConfig.port,
+              idleTimeoutMillis: 30000,
+              connectionTimeoutMillis: 10000
+            });
+            // I couldnt figure out how to get parameterization to work here, it wants strings not numbers? 
+            pool.query('SELECT stationdata.dataid, stationdata.name, stationdata.activitycount, stationdata.distance, ' +
+            'stationAgg.sumCnt, stationAgg.minCnt, stationAgg.maxCnt ' +
+            'FROM ' +
+            '(SELECT stations.dataid, stations.name, stations.activitycount, ' +
+            'ST_Distance(stations.geom, \'SRID=4326;POINT(' + longLatString + ')\'::geometry, true) as distance ' +
+            'FROM stations ' +
+            'WHERE ST_Distance(stations.geom, \'SRID=4326;POINT(' + longLatString + ')\'::geometry, true) < '+ maxDistance + ' ' +
+            'ORDER BY ST_Distance(stations.geom, \'SRID=4326;POINT(' + longLatString + ')\'::geometry, true) ASC ) stationData ' +
+            'CROSS JOIN ' +
+            '(SELECT SUM(activityCount) sumCnt, MIN(activityCount) minCnt, MAX(activityCount) maxCnt FROM stations) stationAgg',
+            []).then((response) => {
+                    pool.end(); // it won't return with an open connection
                     let popularitySum = 0;
                     response.rows.forEach(row => {
-                        const activityScaled = utils.getRange(row.mincnt, row.maxcnt, 0, 100, row.activitycount);
-                        const distanceScaled = utils.getRange(0, maxDistance, 1, 0, row.distance);
+                        const activityScaled = getRange(row.mincnt, row.maxcnt, 0, 100, row.activitycount);
+                        const distanceScaled = getRange(0, maxDistance, 1, 0, row.distance);
                         popularitySum += activityScaled * distanceScaled;
-                        //console.log(row.name, row.distance, row.activitycount, (activityScaled * distanceScaled));
                     });
-                    return {
-                        statusCode: 200,
-                        body: JSON.stringify({score: popularitySum})
-                    };
-                }
+                    return done(undefined, {score: popularitySum});
+            }).catch((err) => {
+                return done(err);
             });
+        } else {
+            return done({message: "Query params long and lat are required and must be numeric."});
+        }
     }
 
-    switch (event.httpMethod) {
+    switch (event.context["http-method"]) {
         case 'GET':
+            if (event.params.querystring.latlong) { // particle events need to pass in a string. parse the string
+                const latLongArr = event.params.querystring.latlong.split(',');
+                if (latLongArr.length === 2) {
+                    getScoreLongLat(latLongArr[1], latLongArr[0], event.params.querystring.maxDist);   
+                } else {
+                    done({message: "Invalid latlong param."});
+                }
+            } else {
+                getScoreLongLat(event.params.querystring.long, event.params.querystring.lat, event.params.querystring.maxDist);
+            }
             
             break;
         default:
-            done(new Error(`Unsupported method "${event.httpMethod}"`));
+            done(event);
     }
 };
-
-
-
-const 
-
-/*
-app.get('/getScoreLongLat', (req, res, callback) => {
-    if (req.query.long !== undefined && req.query.lat !== undefined) {
-        const longLatString = req.query.long + ' ' + req.query.lat;
-        const maxDistance = req.query.maxDist || '800';
-        const postgresConfig = require('./keys/postgres');
-        const Pool = require('pg').Pool
-        const pool = new Pool({
-          user: postgresConfig.user,
-          host: postgresConfig.host,
-          database: postgresConfig.database,
-          password: postgresConfig.password,
-          port: postgresConfig.port
-        });
-        // I couldnt figure out how to get parameterization to work here, it wants strings not numbers? 
-        pool.query('SELECT stationdata.dataid, stationdata.name, stationdata.activitycount, stationdata.distance, ' +
-        'stationAgg.sumCnt, stationAgg.minCnt, stationAgg.maxCnt ' +
-        'FROM ' +
-        '(SELECT stations.dataid, stations.name, stations.activitycount, ' +
-        'ST_Distance(stations.geom, \'SRID=4326;POINT(' + longLatString + ')\'::geometry, true) as distance ' +
-        'FROM stations ' +
-        'WHERE ST_Distance(stations.geom, \'SRID=4326;POINT(' + longLatString + ')\'::geometry, true) < '+ maxDistance + ' ' +
-        'ORDER BY ST_Distance(stations.geom, \'SRID=4326;POINT(' + longLatString + ')\'::geometry, true) ASC ) stationData ' +
-        'CROSS JOIN ' +
-        '(SELECT SUM(activityCount) sumCnt, MIN(activityCount) minCnt, MAX(activityCount) maxCnt FROM stations) stationAgg',
-            [], (error, response) => {
-                if (error) {
-                    res.status(500).send(error);
-                } else {
-                    let popularitySum = 0;
-                    response.rows.forEach(row => {
-                        const activityScaled = utils.getRange(row.mincnt, row.maxcnt, 0, 100, row.activitycount);
-                        const distanceScaled = utils.getRange(0, maxDistance, 1, 0, row.distance);
-                        popularitySum += activityScaled * distanceScaled;
-                        //console.log(row.name, row.distance, row.activitycount, (activityScaled * distanceScaled));
-                    });
-                    res.status(200).send({score: popularitySum});
-                }
-            });
-    } else {
-        res.status(500).send("Must define long and lat"); 
-    }
-})
-
-*/
