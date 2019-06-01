@@ -1,0 +1,14 @@
+{
+  "name": "framsia-bike-lambda",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kristina Durivage @gelicia",
+  "license": "MIT",
+  "dependencies": {
+    "pg": "^7.11.0"
+  }
+}

@@ -2,3 +2,4 @@
 /server/src/exampleData/json/*
 /server/dist
 /server/src/keys/postgres.js
+/lambda/keys/postgres.js
