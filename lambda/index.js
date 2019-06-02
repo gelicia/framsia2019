@@ -53,7 +53,7 @@ exports.handler = (event, context, callback) => {
                 return done(err);
             });
         } else {
-            return done({message: "Query params long and lat are required and must be numeric."});
+            return done({message: "Query params long and lat (or one param, a comma delimited latlong or longlat) are required and must be numeric."});
         }
     }
 
@@ -65,6 +65,13 @@ exports.handler = (event, context, callback) => {
                     getScoreLongLat(latLongArr[1], latLongArr[0], event.params.querystring.maxDist);   
                 } else {
                     done({message: "Invalid latlong param."});
+                }
+            } else if (event.params.querystring.longlat) { // fine.
+                const longLatArr = event.params.querystring.longlat.split(',');
+                if (longLatArr.length === 2) {
+                    getScoreLongLat(longLatArr[0], longLatArr[1], event.params.querystring.maxDist);   
+                } else {
+                    done({message: "Invalid longlat param."});
                 }
             } else {
                 getScoreLongLat(event.params.querystring.long, event.params.querystring.lat, event.params.querystring.maxDist);

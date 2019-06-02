@@ -39,3 +39,12 @@ LIMIT 5 ) as stationLimit,
 station_activity sa
 WHERE sa.stationId = stationLimit.id
 GROUP BY stationLimit.id, distance
+
+API Gateway integration response template
+##  String equality doesnt seem to work, but contains does. I wish this was better documented.
+#set($statusCode = $input.json('$.statusCode').toString())
+#if ($statusCode.contains("200"))
+	$util.parseJson($input.json('$.body'))
+#else
+	$input.json('$')
+#end
