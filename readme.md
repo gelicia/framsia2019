@@ -66,7 +66,7 @@ Get the CSV file from [Oslo City Bike](https://oslobysykkel.no/en/open-data) and
 `localhost:3000/getScoreLongLat?long=10.7268254&lat=59.9099435` will hit the API. The lambda got a bit more fancy (with other API endpoints, and latLong and longLat), but you can really see what's going on better here.
 
 ## Lambda
-Run `npm i`, copy `lambda/keys/postgresTEMP.js`, remove TEMP, then provide your postgres server credentials in `lambda/keys/postgresTEMP.js`.  Zip up the lambda folder and upload to AWS Lambda that way.
+Run `npm i`, copy `lambda/keys/postgresTEMP.js`, remove TEMP, then provide your postgres server credentials in `lambda/keys/postgres.js`.  Zip up the lambda folder and upload to AWS Lambda.
 
 ## API Gateway
 Create two GETs of `/getScoreLatLong` and `/getScoreLongLat` and have it execute the lambda.
@@ -84,6 +84,9 @@ You will need a special template for the integration response. This is so we can
 ```
 
 ## Hardware
+Parts include a 24 LED Neopixel ring, a GPS breakout board, a Particle Photon and an external antenna. And Tupperware, because being an adult means I can destroy Tupperware without getting in trouble. It's powered with an Anker Powercore 5000.
+
+
 From [Particle's Web IDE](https://build.particle.io), create a new project, add the neopixel and Adafruit_GPS libraries, and use the code found in `hardware/framsiabike.ino`. 
 
 From the [Particle Console](https://console.particle.io), add a new webhook integration, and have it call a GET from the deployed API endpoint. Under advanced settings, choose "Custom" for query parameters, and have it be 
